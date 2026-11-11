@@ -39,7 +39,17 @@ h1{font-size:clamp(17px,2.2vw,25px);letter-spacing:.12em;margin:0;font-weight:85
 .panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
 .panel-head h3{margin:0;font-size:11px;letter-spacing:.18em}
 .kicker{color:var(--muted);font-size:9px;letter-spacing:.12em}
-.steering{display:grid;grid-template-columns:1fr 1fr;gap:12px;flex:1}
+.steering{display:grid;place-items:center;align-content:center;flex:1;min-height:230px}
+.steering-wheel{width:min(100%,220px);aspect-ratio:1;border-radius:50%;position:relative;display:grid;place-items:center;border:10px solid #263b4e;background:radial-gradient(circle at 35% 25%,#24394b,#0a121c 70%);box-shadow:inset 0 0 0 3px #09111a,inset 0 0 22px #000b,0 10px 28px #0005;touch-action:none;cursor:grab;outline:none}
+.steering-wheel:before{content:"";position:absolute;inset:10px;border:2px solid #456075;border-radius:50%;pointer-events:none}
+.wheel-spokes{position:absolute;inset:0;transition:transform .08s linear;pointer-events:none}
+.wheel-spokes:before,.wheel-spokes:after{content:"";position:absolute;left:calc(50% - 7px);top:50%;width:14px;height:42%;border-radius:8px;background:linear-gradient(90deg,#253b4d,#617b8e,#1c2d3c);transform-origin:50% 0}
+.wheel-spokes:after{transform:rotate(120deg)}
+.wheel-spoke-third{position:absolute;left:calc(50% - 7px);top:50%;width:14px;height:42%;border-radius:8px;background:linear-gradient(90deg,#253b4d,#617b8e,#1c2d3c);transform:rotate(240deg);transform-origin:50% 0}
+.wheel-hub{position:relative;z-index:2;width:64px;height:64px;border-radius:50%;display:grid;place-items:center;border:2px solid #557083;background:radial-gradient(circle at 35% 25%,#21384a,#0a121c 75%);color:var(--cyan);font-size:20px;font-weight:900;box-shadow:0 0 18px #55e3ed20;pointer-events:none}
+.wheel-caption{font-size:9px;letter-spacing:.14em;color:var(--muted);text-align:center;margin-top:12px}
+.steering-wheel.active{border-color:var(--cyan);box-shadow:inset 0 0 0 3px #09111a,inset 0 0 22px #000b,0 0 0 3px #55e3ed20,0 0 24px #55e3ed22}
+.steering-wheel:focus-visible{outline:2px solid var(--cyan);outline-offset:5px}
 .drive{display:grid;grid-template-columns:1fr;gap:12px;flex:1}
 .padbtn{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:100px;border-radius:14px;border:1px solid #294154;background:linear-gradient(145deg,#162737,#0b141f);color:var(--text);font-weight:850;letter-spacing:.1em;font-size:12px;cursor:pointer;touch-action:none;outline:none;box-shadow:inset 0 1px #ffffff08,0 8px 20px #0002}
 .padbtn .arrow{font-size:32px;line-height:1;color:var(--cyan);font-weight:500}
@@ -73,7 +83,7 @@ summary{cursor:pointer;font-size:10px;font-weight:800;letter-spacing:.13em;color
 .message{margin-top:10px;min-height:15px;color:var(--muted);font-size:10px;line-height:1.4}
 .message.error{color:#ff8d98}.message.good{color:var(--green)}
 @media(max-width:760px){
- body{padding:10px}.topbar{align-items:flex-start}.status{font-size:9px;padding:8px}.hero{grid-template-columns:1fr}.connection-actions{padding:0;display:grid;grid-template-columns:1fr 1fr}.connection-actions .btn{padding:13px 8px}.layout{grid-template-columns:1fr 1fr;gap:10px}.center-panel{grid-column:1/-1;grid-row:1}.control-panel{min-height:230px;padding:12px}.padbtn{min-height:84px}.footer{grid-template-columns:1fr}.settings-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ body{padding:10px}.topbar{align-items:flex-start}.status{font-size:9px;padding:8px}.hero{grid-template-columns:1fr}.connection-actions{padding:0;display:grid;grid-template-columns:1fr 1fr}.connection-actions .btn{padding:13px 8px}.layout{grid-template-columns:1fr 1fr;gap:10px}.center-panel{grid-column:1/-1;grid-row:1}.control-panel{min-height:230px;padding:12px}.steering{min-height:220px}.steering-wheel{width:min(72vw,190px)}.padbtn{min-height:84px}.footer{grid-template-columns:1fr}.settings-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media(max-width:390px){.layout{grid-template-columns:1fr}.center-panel{grid-column:auto;grid-row:auto}.control-panel{min-height:220px}.info{padding:13px}.subtitle{letter-spacing:.12em}}
 </style>
@@ -103,8 +113,11 @@ summary{cursor:pointer;font-size:10px;font-weight:800;letter-spacing:.13em;color
     <section class="panel control-panel">
       <div class="panel-head"><h3>01 / STEERING</h3><span class="kicker">HOLD TO TURN</span></div>
       <div class="steering">
-        <button class="padbtn" data-move="left"><span class="arrow">←</span><span>LEFT</span><span class="hint">STEER</span></button>
-        <button class="padbtn" data-move="right"><span class="arrow">→</span><span>RIGHT</span><span class="hint">STEER</span></button>
+        <div id="steeringWheel" class="steering-wheel" role="slider" aria-label="Steering wheel: drag left or right to steer" aria-valuemin="-1" aria-valuemax="1" aria-valuenow="0" tabindex="0">
+          <div id="wheelSpokes" class="wheel-spokes"><span class="wheel-spoke-third"></span></div>
+          <div class="wheel-hub">RM</div>
+        </div>
+        <div class="wheel-caption">DRAG LEFT OR RIGHT · RELEASE TO STOP</div>
       </div>
     </section>
 
@@ -126,7 +139,7 @@ summary{cursor:pointer;font-size:10px;font-weight:800;letter-spacing:.13em;color
   </main>
 
   <section class="footer">
-    <div class="panel notice"><strong>FIRST TEST:</strong> Raise the wheels off the ground before connecting. Forward and stop are the only commands verified so far. Reverse and steering are configurable, unverified guesses until you test them physically. This prototype sends one direction at a time.</div>
+    <div class="panel notice"><strong>FIRST TEST:</strong> Raise the wheels off the ground before connecting. STOP is verified. The user reported forward/reverse were swapped, so their packet mapping has been swapped in this version. Combined forward/reverse + steering packets are experimental and must be tested with wheels raised.</div>
     <div class="panel notice"><strong>SAFETY:</strong> Releasing a control sends STOP. The page also attempts STOP on focus loss or disconnect, but radio/browser failures can prevent delivery. Keep the car supported and within reach during testing.</div>
   </section>
 
@@ -138,7 +151,7 @@ summary{cursor:pointer;font-size:10px;font-weight:800;letter-spacing:.13em;color
       <div class="field"><label for="leftByte">LEFT BYTE (HEX)</label><input id="leftByte" value="44" maxlength="2" autocomplete="off" spellcheck="false"></div>
       <div class="field"><label for="rightByte">RIGHT BYTE (HEX)</label><input id="rightByte" value="48" maxlength="2" autocomplete="off" spellcheck="false"></div>
     </div>
-    <p class="small-note">Packet template: AA 00 02 00 00 00 00 [direction byte] [speed/mode byte] 01. Forward defaults to 42 and is the only movement command physically verified. Stop is fixed to 40 00. Change these fields only while stopped. Settings are not saved after reloading.</p>
+    <p class="small-note">Packet template: AA 00 02 00 00 00 00 [direction byte] [speed/mode byte] 01. Direction mapping in this version is experimental: forward=41, reverse=42, left=44, right=48. Combined direction packets are formed by combining direction bits. STOP is fixed to 40 00. Test only with wheels raised. Change these fields only while stopped. Settings are not saved after reloading.</p>
   </details>
   <div id="message" class="message" role="status" aria-live="polite"></div>
 </div>
@@ -156,7 +169,10 @@ summary{cursor:pointer;font-size:10px;font-weight:800;letter-spacing:.13em;color
   const statusDot = $('statusDot'), statusText = $('statusText');
   const deviceLine = $('deviceLine'), movementText = $('movementText'), message = $('message');
   let device = null, server = null, characteristic = null;
-  let activeMove = null, runToken = 0, writeChain = Promise.resolve(), connected = false, shuttingDown = false;
+  const activeMoves = new Set();
+  let runToken = 0, writeChain = Promise.resolve(), connected = false, shuttingDown = false;
+  const steeringWheel = $('steeringWheel'), wheelSpokes = $('wheelSpokes');
+  let wheelPointerId = null, wheelStartX = 0, wheelLastMove = null;
 
   function say(text, kind='') { message.textContent = text; message.className = 'message' + (kind ? ' '+kind : ''); }
   function setStatus(label, online=false, busy=false) {
@@ -168,14 +184,18 @@ summary{cursor:pointer;font-size:10px;font-weight:800;letter-spacing:.13em;color
     if (!/^[0-9a-fA-F]{2}$/.test(value)) throw new Error(label + ' must be exactly two hexadecimal characters (00–FF).');
     return parseInt(value, 16);
   }
-  function packetFor(move) {
-    if (move === 'stop') return STOP_PACKET;
-    let direction;
-    if (move === 'forward') direction = 0x42;
-    else if (move === 'backward') direction = hexByte($('backByte'), 'Reverse byte');
-    else if (move === 'left') direction = hexByte($('leftByte'), 'Left byte');
-    else if (move === 'right') direction = hexByte($('rightByte'), 'Right byte');
-    else throw new Error('Unknown movement command.');
+  function packetFor(moveSet) {
+    if (moveSet === 'stop' || (moveSet instanceof Set && moveSet.size === 0)) return STOP_PACKET;
+    // Direction values are treated as bits on a shared 0x40 base:
+    // forward=0x01, reverse=0x02, left=0x04, right=0x08.
+    // Forward/reverse are swapped from the prior UI because the user's car
+    // physically responded in the opposite direction during their test.
+    let direction = 0x40;
+    const moves = moveSet instanceof Set ? moveSet : new Set([moveSet]);
+    if (moves.has('forward')) direction |= 0x01;
+    if (moves.has('backward')) direction |= 0x02;
+    if (moves.has('left')) direction |= hexByte($('leftByte'), 'Left byte') & 0x0F;
+    if (moves.has('right')) direction |= hexByte($('rightByte'), 'Right byte') & 0x0F;
     const speed = hexByte($('speed'), 'Speed/mode byte');
     return new Uint8Array([...PACKET_PREFIX, direction, speed, ...PACKET_SUFFIX]);
   }
@@ -197,17 +217,29 @@ summary{cursor:pointer;font-size:10px;font-weight:800;letter-spacing:.13em;color
     return writeChain;
   }
   const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
-  async function driveLoop(move, token) {
-    while (connected && activeMove === move && runToken === token) {
-      try { await writePacket(packetFor(move)); }
-      catch (err) { say('Command write failed: ' + err.message, 'error'); break; }
+  function updateMovementUI() {
+    document.querySelectorAll('[data-move]').forEach(button => {
+      button.classList.toggle('active', activeMoves.has(button.dataset.move));
+    });
+    movementText.textContent = activeMoves.size ? [...activeMoves].map(x => x.toUpperCase()).join(' + ') : 'IDLE / STOP';
+  }
+  async function driveLoop(token) {
+    while (connected && activeMoves.size > 0 && runToken === token) {
+      try { await writePacket(packetFor(activeMoves)); }
+      catch (err) { say('Command write failed: ' + err.message, 'error'); activeMoves.clear(); updateMovementUI(); break; }
       await sleep(100);
     }
   }
   async function stopNow(reason='Stopped.') {
-    activeMove = null; runToken++;
-    document.querySelectorAll('[data-move]').forEach(b => b.classList.remove('active'));
-    movementText.textContent = 'IDLE / STOP';
+    activeMoves.clear(); runToken++;
+    updateMovementUI();
+    wheelLastMove = null;
+    wheelPointerId = null;
+    steeringWheel.classList.remove('active');
+    wheelSpokes.style.transform = 'rotate(0deg)';
+    wheelPointerId = null;
+    steeringWheel.classList.remove('active');
+    wheelSpokes.style.transform = 'rotate(0deg)';
     if (characteristic && connected) {
       try { await writePacket(STOP_PACKET); say(reason, 'good'); }
       catch (err) { say('Stop attempted, but BLE write failed: ' + err.message, 'error'); }
@@ -217,12 +249,26 @@ summary{cursor:pointer;font-size:10px;font-weight:800;letter-spacing:.13em;color
   }
   function beginMove(move, button) {
     if (!connected || !characteristic) { say('Connect to the car before driving.', 'error'); return; }
-    if (activeMove === move) return;
-    activeMove = move; const token = ++runToken;
-    document.querySelectorAll('[data-move]').forEach(b => b.classList.toggle('active', b === button));
-    movementText.textContent = move.toUpperCase();
-    say(move === 'forward' ? 'Forward command active (verified packet).' : move.toUpperCase() + ' active — packet is not physically verified.', move === 'forward' ? 'good' : '');
-    driveLoop(move, token);
+    if (activeMoves.has(move)) return;
+    activeMoves.add(move);
+    const token = ++runToken;
+    updateMovementUI();
+    say('Active: ' + [...activeMoves].join(' + ').toUpperCase() + '. Combined direction packet is experimental; test with wheels raised.', 'good');
+    driveLoop(token);
+  }
+  function releaseMove(move, reason='Control released — STOP sent.') {
+    if (!activeMoves.has(move)) return;
+    activeMoves.delete(move);
+    runToken++;
+    updateMovementUI();
+    if (activeMoves.size === 0) {
+      if (characteristic && connected) {
+        writePacket(STOP_PACKET).then(() => say(reason, 'good')).catch(err => say('Stop attempted, but BLE write failed: ' + err.message, 'error'));
+      } else say(reason);
+    } else {
+      const token = ++runToken;
+      driveLoop(token);
+    }
   }
   async function connect() {
     if (!('bluetooth' in navigator)) {
@@ -251,8 +297,9 @@ summary{cursor:pointer;font-size:10px;font-weight:800;letter-spacing:.13em;color
     } finally { connectBtn.disabled = false; }
   }
   function onDisconnected() {
-    connected = false; characteristic = null; activeMove = null; runToken++;
+    connected = false; characteristic = null; activeMoves.clear(); runToken++;
     document.querySelectorAll('[data-move]').forEach(b => b.classList.remove('active'));
+    steeringWheel.classList.remove('active'); wheelSpokes.style.transform = 'rotate(0deg)'; wheelPointerId = null; wheelLastMove = null;
     movementText.textContent = 'LINK LOST / STOP';
     setStatus('DISCONNECTED'); connectBtn.textContent = 'CONNECT CAR'; disconnectBtn.disabled = true;
     deviceLine.textContent = 'Bluetooth link lost. Reconnect before driving.';
@@ -273,10 +320,65 @@ summary{cursor:pointer;font-size:10px;font-weight:800;letter-spacing:.13em;color
 
   connectBtn.addEventListener('click', connect);
   disconnectBtn.addEventListener('click', disconnect);
+
+  // Drag the wheel left/right. Steering packets remain unverified; this prototype
+  // still sends one direction at a time and does not combine steering with throttle.
+  steeringWheel.addEventListener('pointerdown', event => {
+    event.preventDefault();
+    wheelPointerId = event.pointerId;
+    wheelStartX = event.clientX;
+    wheelLastMove = null;
+    steeringWheel.classList.add('active');
+    try { steeringWheel.setPointerCapture(event.pointerId); } catch (_) {}
+  });
+  steeringWheel.addEventListener('pointermove', event => {
+    if (wheelPointerId !== event.pointerId) return;
+    const delta = event.clientX - wheelStartX;
+    const clamped = Math.max(-90, Math.min(90, delta * 1.25));
+    wheelSpokes.style.transform = `rotate(${clamped}deg)`;
+    let move = null;
+    if (delta < -18) move = 'left';
+    else if (delta > 18) move = 'right';
+    steeringWheel.setAttribute('aria-valuenow', move === 'left' ? '-1' : move === 'right' ? '1' : '0');
+    if (move && move !== wheelLastMove) {
+      if (wheelLastMove) releaseMove(wheelLastMove, 'Steering changed.');
+      wheelLastMove = move;
+      beginMove(move, null);
+    } else if (!move && wheelLastMove) {
+      const previous = wheelLastMove;
+      wheelLastMove = null;
+      releaseMove(previous, 'Steering centered.');
+    }
+  });
+  function releaseSteeringWheel(event) {
+    if (wheelPointerId === null || (event && event.pointerId !== undefined && event.pointerId !== wheelPointerId)) return;
+    wheelPointerId = null;
+    steeringWheel.classList.remove('active');
+    wheelSpokes.style.transform = 'rotate(0deg)';
+    steeringWheel.setAttribute('aria-valuenow', '0');
+    if (wheelLastMove) {
+      const previous = wheelLastMove;
+      wheelLastMove = null;
+      releaseMove(previous, 'Steering released.');
+    }
+  }
+  steeringWheel.addEventListener('pointerup', releaseSteeringWheel);
+  steeringWheel.addEventListener('pointercancel', releaseSteeringWheel);
+  steeringWheel.addEventListener('lostpointercapture', releaseSteeringWheel);
+  steeringWheel.addEventListener('contextmenu', event => event.preventDefault());
+  steeringWheel.addEventListener('keydown', event => {
+    if (event.key === 'ArrowLeft') { event.preventDefault(); beginMove('left', null); }
+    if (event.key === 'ArrowRight') { event.preventDefault(); beginMove('right', null); }
+    if (event.key === 'Escape') { event.preventDefault(); stopNow('Steering stopped.'); }
+  });
+  steeringWheel.addEventListener('keyup', event => {
+    if (event.key === 'ArrowLeft') releaseMove('left', 'Steering released.');
+    if (event.key === 'ArrowRight') releaseMove('right', 'Steering released.');
+  });
   $('stopBtn').addEventListener('click', () => stopNow('EMERGENCY STOP sent.'));
   document.querySelectorAll('[data-move]').forEach(button => {
     const move = button.dataset.move;
-    const release = () => { if (activeMove === move) stopNow('Control released — STOP sent.'); };
+    const release = () => releaseMove(move, 'Control released — STOP sent.');
     button.addEventListener('pointerdown', event => {
       event.preventDefault();
       if (button.setPointerCapture) { try { button.setPointerCapture(event.pointerId); } catch (_) {} }
@@ -287,17 +389,17 @@ summary{cursor:pointer;font-size:10px;font-weight:800;letter-spacing:.13em;color
     button.addEventListener('lostpointercapture', release);
     button.addEventListener('contextmenu', event => event.preventDefault());
   });
-  window.addEventListener('blur', () => { if (activeMove) stopNow('Page lost focus — STOP attempted.'); });
+  window.addEventListener('blur', () => { if (activeMoves.size) stopNow('Page lost focus — STOP attempted.'); });
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden && activeMove) stopNow('Page hidden — STOP attempted.');
+    if (document.hidden && activeMoves.size) stopNow('Page hidden — STOP attempted.');
   });
   window.addEventListener('pagehide', () => {
     // Best effort only; browsers may suspend the page before a BLE write completes.
     if (characteristic && connected) { try { writePacket(STOP_PACKET); } catch (_) {} }
   });
   ['speed','backByte','leftByte','rightByte'].forEach(id => $(id).addEventListener('change', () => {
-    if (activeMove) stopNow('Settings changed — STOP sent.');
-    say('Command settings updated. Reverse and steering remain unverified.');
+    if (activeMoves.size) stopNow('Settings changed — STOP sent.');
+    say('Command settings updated. Combined steering and throttle packets remain unverified.');
   }));
   if (!window.isSecureContext) say('Warning: this page is not in a secure context. Web Bluetooth normally requires HTTPS or localhost.', 'error');
   if (!('bluetooth' in navigator)) say('Web Bluetooth is not available here. Use a supported Android Chrome browser over HTTPS.', 'error');
