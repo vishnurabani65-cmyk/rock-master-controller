@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#080d14">
+<title>ROCK MASTER CONTROL</title>
+<style>
+:root{color-scheme:dark;--bg:#080d14;--panel:#101a26;--panel2:#0c141e;--line:#243548;--muted:#8da1b7;--text:#eef5fc;--cyan:#55e3ed;--green:#7af0b0;--red:#ff5967;--amber:#ffca70}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:radial-gradient(ellipse at 50% -20%,#1b3449 0%,var(--bg) 55%);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--text)}
+body{padding:clamp(10px,2vw,24px);user-select:none;-webkit-user-select:none;touch-action:manipulation}
+button,input{font:inherit}
+.app{max-width:1200px;margin:0 auto}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:14px}
+.brand{display:flex;align-items:center;gap:12px}
+.mark{width:42px;height:42px;border:1px solid #2e7180;background:linear-gradient(145deg,#163643,#0b1721);border-radius:12px;display:grid;place-items:center;color:var(--cyan);font-size:22px;box-shadow:0 0 22px #55e3ed16}
+h1{font-size:clamp(17px,2.2vw,25px);letter-spacing:.12em;margin:0;font-weight:850}
+.subtitle{font-size:10px;letter-spacing:.23em;color:var(--muted);margin-top:4px}
+.status{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:#0b131d;padding:10px 12px;border-radius:999px;font-size:11px;color:var(--muted);white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;background:#75869a;box-shadow:0 0 0 4px #75869a18}
+.dot.online{background:var(--green);box-shadow:0 0 0 4px #7af0b018}
+.dot.busy{background:var(--amber);box-shadow:0 0 0 4px #ffca7018}
+.hero{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:stretch;margin-bottom:14px}
+.panel{background:linear-gradient(145deg,#111d2aee,#0b131dee);border:1px solid var(--line);border-radius:17px;box-shadow:0 12px 35px #0003}
+.info{padding:16px 18px;display:flex;align-items:center;gap:18px;min-width:0}
+.info-icon{font-size:25px;color:var(--cyan)}
+.info h2{margin:0 0 5px;font-size:13px;letter-spacing:.13em}
+.info p{margin:0;color:var(--muted);font-size:12px;line-height:1.5}
+.connection-actions{padding:12px;display:flex;align-items:center;gap:8px}
+.btn{border:1px solid var(--line);background:#152334;color:var(--text);border-radius:10px;padding:12px 16px;font-size:11px;letter-spacing:.09em;font-weight:800;cursor:pointer;transition:transform .08s,border-color .15s,filter .15s}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.42;cursor:not-allowed}
+.btn-primary{background:linear-gradient(135deg,#57e3eb,#2bb4c8);border-color:#73edf2;color:#06131a}
+.btn-danger{background:linear-gradient(135deg,#ff6470,#d82d43);border-color:#ff8790;color:white}
+.btn-quiet{background:#0b141f}
+.layout{display:grid;grid-template-columns:1fr 1.1fr 1fr;gap:14px}
+.control-panel{padding:16px;min-height:340px;display:flex;flex-direction:column}
+.panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.panel-head h3{margin:0;font-size:11px;letter-spacing:.18em}
+.kicker{color:var(--muted);font-size:9px;letter-spacing:.12em}
+.steering{display:grid;grid-template-columns:1fr 1fr;gap:12px;flex:1}
+.drive{display:grid;grid-template-columns:1fr;gap:12px;flex:1}
+.padbtn{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:100px;border-radius:14px;border:1px solid #294154;background:linear-gradient(145deg,#162737,#0b141f);color:var(--text);font-weight:850;letter-spacing:.1em;font-size:12px;cursor:pointer;touch-action:none;outline:none;box-shadow:inset 0 1px #ffffff08,0 8px 20px #0002}
+.padbtn .arrow{font-size:32px;line-height:1;color:var(--cyan);font-weight:500}
+.padbtn .hint{font-size:9px;color:var(--muted);font-weight:600;letter-spacing:.12em}
+.padbtn:active,.padbtn.active{border-color:var(--cyan);background:linear-gradient(145deg,#16414b,#0b1b26);box-shadow:inset 0 0 25px #55e3ed18,0 0 0 2px #55e3ed18}
+.padbtn.drive-forward{border-color:#337d72;background:linear-gradient(145deg,#143d3a,#0b1c22)}
+.padbtn.drive-forward .arrow{color:var(--green)}
+.padbtn.drive-reverse .arrow{color:var(--amber)}
+.center-panel{padding:16px;display:flex;flex-direction:column;gap:12px}
+.center-title{font-size:10px;letter-spacing:.2em;color:var(--muted);text-align:center}
+.radar{min-height:112px;display:grid;place-items:center;position:relative;overflow:hidden;border-radius:13px;border:1px solid #1e3447;background:radial-gradient(ellipse at center,#122b3b 0%,#0a141e 65%)}
+.radar:before,.radar:after{content:"";position:absolute;border:1px solid #284657;border-radius:50%;width:150px;height:150px}
+.radar:after{width:86px;height:86px}
+.radar-grid{position:absolute;width:100%;height:1px;background:#284657;opacity:.65}
+.radar-grid.v{width:1px;height:100%}
+.car{position:relative;z-index:1;color:var(--cyan);font-size:37px;filter:drop-shadow(0 0 10px #55e3ed55)}
+.move-status{display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px solid var(--line);background:#0a131d;border-radius:10px;padding:11px 12px}
+.move-status span:first-child{font-size:9px;letter-spacing:.14em;color:var(--muted)}
+.move-status strong{font-size:11px;letter-spacing:.12em;color:var(--green)}
+.emergency{width:100%;min-height:52px;font-size:13px;letter-spacing:.15em}
+.connection-note{font-size:10px;line-height:1.5;color:var(--muted);text-align:center}
+.footer{margin-top:14px;display:grid;grid-template-columns:1.4fr 1fr;gap:14px}
+.notice{padding:13px 15px;font-size:10px;line-height:1.55;color:var(--muted)}
+.notice strong{color:var(--amber)}
+details{padding:14px 16px}
+summary{cursor:pointer;font-size:10px;font-weight:800;letter-spacing:.13em;color:#c5d5e4}
+.settings-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:14px}
+.field label{display:block;color:var(--muted);font-size:9px;margin-bottom:6px;letter-spacing:.08em}
+.field input{width:100%;min-width:0;background:#080f17;border:1px solid var(--line);border-radius:8px;padding:9px;color:var(--text);font-size:12px}
+.small-note{font-size:10px;color:var(--muted);line-height:1.5;margin:12px 0 0}
+.message{margin-top:10px;min-height:15px;color:var(--muted);font-size:10px;line-height:1.4}
+.message.error{color:#ff8d98}.message.good{color:var(--green)}
+@media(max-width:760px){
+ body{padding:10px}.topbar{align-items:flex-start}.status{font-size:9px;padding:8px}.hero{grid-template-columns:1fr}.connection-actions{padding:0;display:grid;grid-template-columns:1fr 1fr}.connection-actions .btn{padding:13px 8px}.layout{grid-template-columns:1fr 1fr;gap:10px}.center-panel{grid-column:1/-1;grid-row:1}.control-panel{min-height:230px;padding:12px}.padbtn{min-height:84px}.footer{grid-template-columns:1fr}.settings-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:390px){.layout{grid-template-columns:1fr}.center-panel{grid-column:auto;grid-row:auto}.control-panel{min-height:220px}.info{padding:13px}.subtitle{letter-spacing:.12em}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <div class="mark">⚡</div>
+      <div><h1>ROCK MASTER <span style="color:var(--cyan)">CONTROL</span></h1><div class="subtitle">WIRELESS OFF-ROAD SYSTEM / BLE LINK</div></div>
+    </div>
+    <div class="status"><span id="statusDot" class="dot"></span><span id="statusText">DISCONNECTED</span></div>
+  </header>
+
+  <section class="hero">
+    <div class="panel info">
+      <div class="info-icon">◈</div>
+      <div><h2>VEHICLE LINK</h2><p id="deviceLine">Ready to scan for YC_CAR_DEMO. Keep the car powered on and nearby.</p></div>
+    </div>
+    <div class="connection-actions">
+      <button id="connectBtn" class="btn btn-primary">CONNECT CAR</button>
+      <button id="disconnectBtn" class="btn btn-quiet" disabled>DISCONNECT</button>
+    </div>
+  </section>
+
+  <main class="layout">
+    <section class="panel control-panel">
+      <div class="panel-head"><h3>01 / STEERING</h3><span class="kicker">HOLD TO TURN</span></div>
+      <div class="steering">
+        <button class="padbtn" data-move="left"><span class="arrow">←</span><span>LEFT</span><span class="hint">STEER</span></button>
+        <button class="padbtn" data-move="right"><span class="arrow">→</span><span>RIGHT</span><span class="hint">STEER</span></button>
+      </div>
+    </section>
+
+    <section class="panel center-panel">
+      <div class="center-title">LIVE VEHICLE TELEMETRY</div>
+      <div class="radar"><div class="radar-grid"></div><div class="radar-grid v"></div><div class="car">▰</div></div>
+      <div class="move-status"><span>CURRENT COMMAND</span><strong id="movementText">IDLE / STOP</strong></div>
+      <button id="stopBtn" class="btn btn-danger emergency">■ &nbsp; EMERGENCY STOP</button>
+      <div class="connection-note">BLE GATT · SERVICE FFF0 · WRITE FFF2</div>
+    </section>
+
+    <section class="panel control-panel">
+      <div class="panel-head"><h3>02 / THROTTLE</h3><span class="kicker">HOLD TO DRIVE</span></div>
+      <div class="drive">
+        <button class="padbtn drive-forward" data-move="forward"><span class="arrow">↑</span><span>FORWARD</span><span class="hint">HOLD TO ACCELERATE</span></button>
+        <button class="padbtn drive-reverse" data-move="backward"><span class="arrow">↓</span><span>REVERSE</span><span class="hint">HOLD TO REVERSE</span></button>
+      </div>
+    </section>
+  </main>
+
+  <section class="footer">
+    <div class="panel notice"><strong>FIRST TEST:</strong> Raise the wheels off the ground before connecting. Forward and stop are the only commands verified so far. Reverse and steering are configurable, unverified guesses until you test them physically. This prototype sends one direction at a time.</div>
+    <div class="panel notice"><strong>SAFETY:</strong> Releasing a control sends STOP. The page also attempts STOP on focus loss or disconnect, but radio/browser failures can prevent delivery. Keep the car supported and within reach during testing.</div>
+  </section>
+
+  <details class="panel" style="margin-top:14px">
+    <summary>ADVANCED COMMAND SETTINGS · UNVERIFIED DIRECTIONS</summary>
+    <div class="settings-grid">
+      <div class="field"><label for="speed">SPEED / MODE BYTE (HEX)</label><input id="speed" value="64" maxlength="2" autocomplete="off" spellcheck="false"></div>
+      <div class="field"><label for="backByte">REVERSE BYTE (HEX)</label><input id="backByte" value="41" maxlength="2" autocomplete="off" spellcheck="false"></div>
+      <div class="field"><label for="leftByte">LEFT BYTE (HEX)</label><input id="leftByte" value="44" maxlength="2" autocomplete="off" spellcheck="false"></div>
+      <div class="field"><label for="rightByte">RIGHT BYTE (HEX)</label><input id="rightByte" value="48" maxlength="2" autocomplete="off" spellcheck="false"></div>
+    </div>
+    <p class="small-note">Packet template: AA 00 02 00 00 00 00 [direction byte] [speed/mode byte] 01. Forward defaults to 42 and is the only movement command physically verified. Stop is fixed to 40 00. Change these fields only while stopped. Settings are not saved after reloading.</p>
+  </details>
+  <div id="message" class="message" role="status" aria-live="polite"></div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+  const SERVICE_UUID = '0000fff0-0000-1000-8000-00805f9b34fb';
+  const CHARACTERISTIC_UUID = '0000fff2-0000-1000-8000-00805f9b34fb';
+  const STOP_PACKET = new Uint8Array([0xAA,0x00,0x02,0x00,0x00,0x00,0x00,0x40,0x00,0x01]);
+  const PACKET_PREFIX = [0xAA,0x00,0x02,0x00,0x00,0x00,0x00];
+  const PACKET_SUFFIX = [0x01];
+  const $ = id => document.getElementById(id);
+  const connectBtn = $('connectBtn'), disconnectBtn = $('disconnectBtn');
+  const statusDot = $('statusDot'), statusText = $('statusText');
+  const deviceLine = $('deviceLine'), movementText = $('movementText'), message = $('message');
+  let device = null, server = null, characteristic = null;
+  let activeMove = null, runToken = 0, writeChain = Promise.resolve(), connected = false, shuttingDown = false;
+
+  function say(text, kind='') { message.textContent = text; message.className = 'message' + (kind ? ' '+kind : ''); }
+  function setStatus(label, online=false, busy=false) {
+    statusText.textContent = label;
+    statusDot.className = 'dot' + (online ? ' online' : busy ? ' busy' : '');
+  }
+  function hexByte(input, label) {
+    const value = input.value.trim();
+    if (!/^[0-9a-fA-F]{2}$/.test(value)) throw new Error(label + ' must be exactly two hexadecimal characters (00–FF).');
+    return parseInt(value, 16);
+  }
+  function packetFor(move) {
+    if (move === 'stop') return STOP_PACKET;
+    let direction;
+    if (move === 'forward') direction = 0x42;
+    else if (move === 'backward') direction = hexByte($('backByte'), 'Reverse byte');
+    else if (move === 'left') direction = hexByte($('leftByte'), 'Left byte');
+    else if (move === 'right') direction = hexByte($('rightByte'), 'Right byte');
+    else throw new Error('Unknown movement command.');
+    const speed = hexByte($('speed'), 'Speed/mode byte');
+    return new Uint8Array([...PACKET_PREFIX, direction, speed, ...PACKET_SUFFIX]);
+  }
+  function writePacket(bytes) {
+    // Serialize every write. A slow BLE write cannot overlap the next one.
+    writeChain = writeChain.catch(() => {}).then(async () => {
+      if (!characteristic || !connected) throw new Error('Not connected to the car.');
+      if (characteristic.properties.writeWithoutResponse && characteristic.writeValueWithoutResponse) {
+        await characteristic.writeValueWithoutResponse(bytes);
+      } else if (characteristic.properties.write && characteristic.writeValueWithResponse) {
+        await characteristic.writeValueWithResponse(bytes);
+      } else if (characteristic.properties.write && characteristic.writeValue) {
+        // Compatibility fallback for older Web Bluetooth implementations.
+        await characteristic.writeValue(bytes);
+      } else {
+        throw new Error('FFF2 does not advertise a supported write property.');
+      }
+    });
+    return writeChain;
+  }
+  const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+  async function driveLoop(move, token) {
+    while (connected && activeMove === move && runToken === token) {
+      try { await writePacket(packetFor(move)); }
+      catch (err) { say('Command write failed: ' + err.message, 'error'); break; }
+      await sleep(100);
+    }
+  }
+  async function stopNow(reason='Stopped.') {
+    activeMove = null; runToken++;
+    document.querySelectorAll('[data-move]').forEach(b => b.classList.remove('active'));
+    movementText.textContent = 'IDLE / STOP';
+    if (characteristic && connected) {
+      try { await writePacket(STOP_PACKET); say(reason, 'good'); }
+      catch (err) { say('Stop attempted, but BLE write failed: ' + err.message, 'error'); }
+    } else {
+      say(reason);
+    }
+  }
+  function beginMove(move, button) {
+    if (!connected || !characteristic) { say('Connect to the car before driving.', 'error'); return; }
+    if (activeMove === move) return;
+    activeMove = move; const token = ++runToken;
+    document.querySelectorAll('[data-move]').forEach(b => b.classList.toggle('active', b === button));
+    movementText.textContent = move.toUpperCase();
+    say(move === 'forward' ? 'Forward command active (verified packet).' : move.toUpperCase() + ' active — packet is not physically verified.', move === 'forward' ? 'good' : '');
+    driveLoop(move, token);
+  }
+  async function connect() {
+    if (!('bluetooth' in navigator)) {
+      say('Web Bluetooth is unavailable in this browser. Open this page in Chrome on Android over HTTPS.', 'error'); return;
+    }
+    connectBtn.disabled = true; setStatus('SCANNING', false, true); say('Choose YC_CAR_DEMO in the Bluetooth picker…');
+    try {
+      device = await navigator.bluetooth.requestDevice({
+        filters: [{ name: 'YC_CAR_DEMO' }],
+        optionalServices: [SERVICE_UUID]
+      });
+      device.addEventListener('gattserverdisconnected', onDisconnected);
+      deviceLine.textContent = 'Selected device: ' + (device.name || 'YC_CAR_DEMO');
+      server = await device.gatt.connect();
+      const service = await server.getPrimaryService(SERVICE_UUID);
+      characteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
+      connected = true; shuttingDown = false;
+      setStatus('CONNECTED', true); connectBtn.textContent = 'CONNECTED';
+      disconnectBtn.disabled = false; deviceLine.textContent = 'Connected to ' + (device.name || 'YC_CAR_DEMO') + ' · BLE GATT ready.';
+      say('Connection ready. Test with wheels raised.', 'good');
+    } catch (err) {
+      connected = false; characteristic = null; setStatus('DISCONNECTED');
+      connectBtn.textContent = 'CONNECT CAR';
+      if (err.name === 'NotFoundError') say('No device selected. Try Connect Car again and select YC_CAR_DEMO.');
+      else say('Connection failed: ' + err.message, 'error');
+    } finally { connectBtn.disabled = false; }
+  }
+  function onDisconnected() {
+    connected = false; characteristic = null; activeMove = null; runToken++;
+    document.querySelectorAll('[data-move]').forEach(b => b.classList.remove('active'));
+    movementText.textContent = 'LINK LOST / STOP';
+    setStatus('DISCONNECTED'); connectBtn.textContent = 'CONNECT CAR'; disconnectBtn.disabled = true;
+    deviceLine.textContent = 'Bluetooth link lost. Reconnect before driving.';
+    say('Bluetooth disconnected. A STOP packet may not have reached the car.', 'error');
+  }
+  async function disconnect() {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    await stopNow('Stopping before disconnect…');
+    connected = false;
+    try { if (device?.gatt?.connected) device.gatt.disconnect(); } catch (_) {}
+    characteristic = null; server = null;
+    setStatus('DISCONNECTED'); connectBtn.textContent = 'CONNECT CAR'; disconnectBtn.disabled = true;
+    deviceLine.textContent = 'Disconnected. Connect again when ready.';
+    say('Disconnected.');
+    shuttingDown = false;
+  }
+
+  connectBtn.addEventListener('click', connect);
+  disconnectBtn.addEventListener('click', disconnect);
+  $('stopBtn').addEventListener('click', () => stopNow('EMERGENCY STOP sent.'));
+  document.querySelectorAll('[data-move]').forEach(button => {
+    const move = button.dataset.move;
+    const release = () => { if (activeMove === move) stopNow('Control released — STOP sent.'); };
+    button.addEventListener('pointerdown', event => {
+      event.preventDefault();
+      if (button.setPointerCapture) { try { button.setPointerCapture(event.pointerId); } catch (_) {} }
+      beginMove(move, button);
+    });
+    button.addEventListener('pointerup', release);
+    button.addEventListener('pointercancel', release);
+    button.addEventListener('lostpointercapture', release);
+    button.addEventListener('contextmenu', event => event.preventDefault());
+  });
+  window.addEventListener('blur', () => { if (activeMove) stopNow('Page lost focus — STOP attempted.'); });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && activeMove) stopNow('Page hidden — STOP attempted.');
+  });
+  window.addEventListener('pagehide', () => {
+    // Best effort only; browsers may suspend the page before a BLE write completes.
+    if (characteristic && connected) { try { writePacket(STOP_PACKET); } catch (_) {} }
+  });
+  ['speed','backByte','leftByte','rightByte'].forEach(id => $(id).addEventListener('change', () => {
+    if (activeMove) stopNow('Settings changed — STOP sent.');
+    say('Command settings updated. Reverse and steering remain unverified.');
+  }));
+  if (!window.isSecureContext) say('Warning: this page is not in a secure context. Web Bluetooth normally requires HTTPS or localhost.', 'error');
+  if (!('bluetooth' in navigator)) say('Web Bluetooth is not available here. Use a supported Android Chrome browser over HTTPS.', 'error');
+})();
+</script>
+</body>
+</html>
