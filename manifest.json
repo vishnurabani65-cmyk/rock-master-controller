@@ -1,0 +1,25 @@
+
+{
+  "id": "/rock-master-controller/",
+  "name": "ROCK MASTER CONTROL",
+  "short_name": "ROCK MASTER",
+  "description": "Wireless RC car Bluetooth controller",
+  "start_url": "/rock-master-controller/",
+  "scope": "/rock-master-controller/",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#080d16",
+  "theme_color": "#080d16",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
