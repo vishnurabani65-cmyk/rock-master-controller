@@ -48,6 +48,13 @@ h1{font-size:clamp(17px,2.2vw,25px);letter-spacing:.12em;margin:0;font-weight:85
 .wheel-spoke-third{position:absolute;left:calc(50% - 7px);top:50%;width:14px;height:42%;border-radius:8px;background:linear-gradient(90deg,#253b4d,#617b8e,#1c2d3c);transform:rotate(240deg);transform-origin:50% 0}
 .wheel-hub{position:relative;z-index:2;width:64px;height:64px;border-radius:50%;display:grid;place-items:center;border:2px solid #557083;background:radial-gradient(circle at 35% 25%,#21384a,#0a121c 75%);color:var(--cyan);font-size:20px;font-weight:900;box-shadow:0 0 18px #55e3ed20;pointer-events:none}
 .wheel-caption{font-size:9px;letter-spacing:.14em;color:var(--muted);text-align:center;margin-top:12px}
+.steering-buttons{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;max-width:330px;margin-top:16px}
+.steering-buttons .padbtn{min-height:64px;gap:5px}
+.steering-buttons .arrow{font-size:24px}
+.mode-select{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--line);background:#0a131d;border-radius:10px;padding:10px 12px}
+.mode-select label{font-size:9px;letter-spacing:.12em;color:var(--muted)}
+.mode-select select{max-width:58%;background:#152334;color:var(--text);border:1px solid #294154;border-radius:8px;padding:8px;font:inherit;font-size:11px}
+.mode-warning{font-size:10px;line-height:1.45;color:var(--amber);margin:0}
 .steering-wheel.active{border-color:var(--cyan);box-shadow:inset 0 0 0 3px #09111a,inset 0 0 22px #000b,0 0 0 3px #55e3ed20,0 0 24px #55e3ed22}
 .steering-wheel:focus-visible{outline:2px solid var(--cyan);outline-offset:5px}
 .drive{display:grid;grid-template-columns:1fr;gap:12px;flex:1}
@@ -118,6 +125,10 @@ summary{cursor:pointer;font-size:10px;font-weight:800;letter-spacing:.13em;color
           <div class="wheel-hub">RM</div>
         </div>
         <div class="wheel-caption">DRAG LEFT OR RIGHT · RELEASE TO STOP</div>
+        <div class="steering-buttons" aria-label="Alternative steering buttons">
+          <button class="padbtn" data-move="left"><span class="arrow">←</span><span>LEFT</span></button>
+          <button class="padbtn" data-move="right"><span class="arrow">→</span><span>RIGHT</span></button>
+        </div>
       </div>
     </section>
 
@@ -125,6 +136,8 @@ summary{cursor:pointer;font-size:10px;font-weight:800;letter-spacing:.13em;color
       <div class="center-title">LIVE VEHICLE TELEMETRY</div>
       <div class="radar"><div class="radar-grid"></div><div class="radar-grid v"></div><div class="car">▰</div></div>
       <div class="move-status"><span>CURRENT COMMAND</span><strong id="movementText">IDLE / STOP</strong></div>
+      <div class="mode-select"><label for="driveMode">DRIVE RESPONSE</label><select id="driveMode"><option value="normal">NORMAL</option><option value="low">LOW · PULSE TEST</option></select></div>
+      <p class="mode-warning">LOW mode is experimental pulsed drive, not true variable speed. It may feel jerky. Test with wheels raised first.</p>
       <button id="stopBtn" class="btn btn-danger emergency">■ &nbsp; EMERGENCY STOP</button>
       <div class="connection-note">BLE GATT · SERVICE FFF0 · WRITE FFF2</div>
     </section>
@@ -225,9 +238,22 @@ summary{cursor:pointer;font-size:10px;font-weight:800;letter-spacing:.13em;color
   }
   async function driveLoop(token) {
     while (connected && activeMoves.size > 0 && runToken === token) {
-      try { await writePacket(packetFor(activeMoves)); }
-      catch (err) { say('Command write failed: ' + err.message, 'error'); activeMoves.clear(); updateMovementUI(); break; }
-      await sleep(100);
+      try {
+        await writePacket(packetFor(activeMoves));
+        if ($('driveMode').value === 'low') {
+          // Experimental low mode: short drive pulses separated by STOP packets.
+          // This is not PWM and may not produce smooth or reliably slower motion.
+          await sleep(90);
+          if (!connected || activeMoves.size === 0 || runToken !== token) break;
+          await writePacket(STOP_PACKET);
+          await sleep(170);
+        } else {
+          await sleep(100);
+        }
+      } catch (err) {
+        say('Command write failed: ' + err.message, 'error');
+        activeMoves.clear(); updateMovementUI(); break;
+      }
     }
   }
   async function stopNow(reason='Stopped.') {
@@ -321,8 +347,8 @@ summary{cursor:pointer;font-size:10px;font-weight:800;letter-spacing:.13em;color
   connectBtn.addEventListener('click', connect);
   disconnectBtn.addEventListener('click', disconnect);
 
-  // Drag the wheel left/right. Steering packets remain unverified; this prototype
-  // still sends one direction at a time and does not combine steering with throttle.
+  // Drag the wheel left/right. The buttons below provide an alternative way to steer.
+  // Direction and combined packets remain experimental and must be tested safely.
   steeringWheel.addEventListener('pointerdown', event => {
     event.preventDefault();
     wheelPointerId = event.pointerId;
@@ -396,6 +422,10 @@ summary{cursor:pointer;font-size:10px;font-weight:800;letter-spacing:.13em;color
   window.addEventListener('pagehide', () => {
     // Best effort only; browsers may suspend the page before a BLE write completes.
     if (characteristic && connected) { try { writePacket(STOP_PACKET); } catch (_) {} }
+  });
+  $('driveMode').addEventListener('change', () => {
+    if (activeMoves.size) stopNow('Drive mode changed — STOP sent.');
+    say($('driveMode').value === 'low' ? 'LOW mode selected: experimental pulsed drive, not true variable speed. Test with wheels raised.' : 'NORMAL drive mode selected.', 'good');
   });
   ['speed','backByte','leftByte','rightByte'].forEach(id => $(id).addEventListener('change', () => {
     if (activeMoves.size) stopNow('Settings changed — STOP sent.');
