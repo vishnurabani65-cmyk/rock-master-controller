@@ -187,6 +187,8 @@ summary{cursor:pointer;font-size:10px;font-weight:800;letter-spacing:.13em;color
   let runToken = 0, writeChain = Promise.resolve(), connected = false, shuttingDown = false;
   const steeringWheel = $('steeringWheel'), wheelSpokes = $('wheelSpokes');
   let wheelPointerId = null, wheelStartX = 0, wheelLastMove = null;
+  // Track held keyboard keys separately so multiple keys and repeated key events behave safely.
+  const keyboardHeldKeys = new Set();
 
   function say(text, kind='') { message.textContent = text; message.className = 'message' + (kind ? ' '+kind : ''); }
   function setStatus(label, online=false, busy=false) {
@@ -258,7 +260,9 @@ summary{cursor:pointer;font-size:10px;font-weight:800;letter-spacing:.13em;color
     }
   }
   async function stopNow(reason='Stopped.') {
-    activeMoves.clear(); runToken++;
+    activeMoves.clear();
+    keyboardHeldKeys.clear();
+    runToken++;
     updateMovementUI();
     wheelLastMove = null;
     wheelPointerId = null;
@@ -319,8 +323,13 @@ summary{cursor:pointer;font-size:10px;font-weight:800;letter-spacing:.13em;color
     } catch (err) {
       connected = false; characteristic = null; setStatus('DISCONNECTED');
       connectBtn.textContent = 'CONNECT CAR';
-      if (err.name === 'NotFoundError') say('No device selected. Try Connect Car again and select YC_CAR_DEMO.');
-      else say('Connection failed: ' + err.message, 'error');
+      if (err.name === 'NotFoundError') {
+        say('Chrome found no device in its Bluetooth picker. Quit LightBlue completely, ensure the car is powered on and advertising, then retry. If it still shows no devices, this is browser/device discovery rather than a command-packet issue.', 'error');
+      } else if (err.name === 'SecurityError') {
+        say('Bluetooth permission was blocked. Open this page in Chrome over HTTPS and allow Bluetooth access.', 'error');
+      } else {
+        say('Connection failed (' + (err.name || 'Error') + '): ' + err.message, 'error');
+      }
     } finally { connectBtn.disabled = false; }
   }
   function onDisconnected() {
@@ -393,15 +402,6 @@ summary{cursor:pointer;font-size:10px;font-weight:800;letter-spacing:.13em;color
   steeringWheel.addEventListener('pointercancel', releaseSteeringWheel);
   steeringWheel.addEventListener('lostpointercapture', releaseSteeringWheel);
   steeringWheel.addEventListener('contextmenu', event => event.preventDefault());
-  steeringWheel.addEventListener('keydown', event => {
-    if (event.key === 'ArrowLeft') { event.preventDefault(); beginMove('left', null); }
-    if (event.key === 'ArrowRight') { event.preventDefault(); beginMove('right', null); }
-    if (event.key === 'Escape') { event.preventDefault(); stopNow('Steering stopped.'); }
-  });
-  steeringWheel.addEventListener('keyup', event => {
-    if (event.key === 'ArrowLeft') releaseMove('left', 'Steering released.');
-    if (event.key === 'ArrowRight') releaseMove('right', 'Steering released.');
-  });
   $('stopBtn').addEventListener('click', () => stopNow('EMERGENCY STOP sent.'));
   document.querySelectorAll('[data-move]').forEach(button => {
     const move = button.dataset.move;
@@ -417,18 +417,13 @@ summary{cursor:pointer;font-size:10px;font-weight:800;letter-spacing:.13em;color
     button.addEventListener('contextmenu', event => event.preventDefault());
   });
  
-  // Mac keyboard controls: W/A/S/D and arrow keys
-  let keyboardMove = null;
-
+  // Mac keyboard controls: W/A/S/D and arrow keys.
+  // Each key is tracked independently; releasing one key won't stop another held direction.
   const keyboardDirections = {
-    w: 'forward',
-    arrowup: 'forward',
-    s: 'backward',
-    arrowdown: 'backward',
-    a: 'left',
-    arrowleft: 'left',
-    d: 'right',
-    arrowright: 'right'
+    w: 'forward', arrowup: 'forward',
+    s: 'backward', arrowdown: 'backward',
+    a: 'left', arrowleft: 'left',
+    d: 'right', arrowright: 'right'
   };
 
   window.addEventListener('keydown', event => {
@@ -440,8 +435,7 @@ summary{cursor:pointer;font-size:10px;font-weight:800;letter-spacing:.13em;color
 
     if (key === ' ' || key === 'escape') {
       event.preventDefault();
-      keyboardMove = null;
-      stopNow();
+      stopNow(key === 'escape' ? 'Keyboard emergency stop.' : 'Keyboard stop.');
       return;
     }
 
@@ -449,19 +443,24 @@ summary{cursor:pointer;font-size:10px;font-weight:800;letter-spacing:.13em;color
     if (!move) return;
 
     event.preventDefault();
-    if (event.repeat || keyboardMove === move) return;
+    if (keyboardHeldKeys.has(key) || event.repeat) return;
 
-    if (keyboardMove) stopNow();
-    keyboardMove = move;
+    keyboardHeldKeys.add(key);
     beginMove(move, null);
   });
 
   window.addEventListener('keyup', event => {
-    const move = keyboardDirections[event.key.toLowerCase()];
+    const key = event.key.toLowerCase();
+    const move = keyboardDirections[key];
+    if (!move || !keyboardHeldKeys.has(key)) return;
 
-    if (move && keyboardMove === move) {
-      keyboardMove = null;
-      stopNow();
+    keyboardHeldKeys.delete(key);
+    // If another held key still requests this same direction, keep it active.
+    const sameMoveStillHeld = [...keyboardHeldKeys].some(
+      heldKey => keyboardDirections[heldKey] === move
+    );
+    if (!sameMoveStillHeld) {
+      releaseMove(move, 'Keyboard control released — STOP sent.');
     }
   });
 
