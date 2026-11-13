@@ -304,7 +304,7 @@ summary{cursor:pointer;font-size:10px;font-weight:800;letter-spacing:.13em;color
     connectBtn.disabled = true; setStatus('SCANNING', false, true); say('Choose YC_CAR_DEMO in the Bluetooth picker…');
     try {
       device = await navigator.bluetooth.requestDevice({
-        filters: [{ name: 'YC_CAR_DEMO' }],
+        acceptAllDevices: true,
         optionalServices: [SERVICE_UUID]
       });
       device.addEventListener('gattserverdisconnected', onDisconnected);
