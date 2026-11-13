@@ -184,7 +184,7 @@ summary{cursor:pointer;font-size:10px;font-weight:800;letter-spacing:.13em;color
   const deviceLine = $('deviceLine'), movementText = $('movementText'), message = $('message');
   let device = null, server = null, characteristic = null;
   const activeMoves = new Set();
-  let runToken = 0, writeChain = Promise.resolve(), connected = false, shuttingDown = false;
+  let runToken = 0, driveLoopRunning = false, writeChain = Promise.resolve(), connected = false, shuttingDown = false;
   const steeringWheel = $('steeringWheel'), wheelSpokes = $('wheelSpokes');
   let wheelPointerId = null, wheelStartX = 0, wheelLastMove = null;
   // Track held keyboard keys separately so multiple keys and repeated key events behave safely.
@@ -239,24 +239,41 @@ summary{cursor:pointer;font-size:10px;font-weight:800;letter-spacing:.13em;color
     });
     movementText.textContent = activeMoves.size ? [...activeMoves].map(x => x.toUpperCase()).join(' + ') : 'IDLE / STOP';
   }
-  async function driveLoop(token) {
-    while (connected && activeMoves.size > 0 && runToken === token) {
-      try {
-        await writePacket(packetFor(activeMoves));
-        if ($('driveMode').value === 'low') {
-          // Experimental low mode: short drive pulses separated by STOP packets.
-          // This is not PWM and may not produce smooth or reliably slower motion.
-          await sleep(90);
-          if (!connected || activeMoves.size === 0 || runToken !== token) break;
-          await writePacket(STOP_PACKET);
-          await sleep(170);
-        } else {
-          await sleep(100);
+  async function driveLoop() {
+    // Use one sender loop for all held controls. Starting a second direction
+    // updates activeMoves; it does not start a competing loop or cancel the first.
+    if (driveLoopRunning) return;
+    driveLoopRunning = true;
+    try {
+      while (connected && activeMoves.size > 0) {
+        const loopVersion = runToken;
+        try {
+          // Snapshot the combined directions at send time so simultaneous inputs
+          // become one packet rather than competing single-direction packets.
+          const packet = packetFor(new Set(activeMoves));
+          await writePacket(packet);
+          if ($('driveMode').value === 'low') {
+            await sleep(90);
+            if (!connected || activeMoves.size === 0) break;
+            await writePacket(STOP_PACKET);
+            await sleep(170);
+          } else {
+            await sleep(100);
+          }
+          // runToken changes whenever inputs change; loop again immediately with
+          // the latest held set instead of allowing an older loop to overwrite it.
+          if (loopVersion !== runToken) continue;
+        } catch (err) {
+          say('Command write failed: ' + err.message, 'error');
+          activeMoves.clear();
+          updateMovementUI();
+          break;
         }
-      } catch (err) {
-        say('Command write failed: ' + err.message, 'error');
-        activeMoves.clear(); updateMovementUI(); break;
       }
+    } finally {
+      driveLoopRunning = false;
+      // A direction may have been pressed while the final write was settling.
+      if (connected && activeMoves.size > 0) driveLoop();
     }
   }
   async function stopNow(reason='Stopped.') {
@@ -282,10 +299,10 @@ summary{cursor:pointer;font-size:10px;font-weight:800;letter-spacing:.13em;color
     if (!connected || !characteristic) { say('Connect to the car before driving.', 'error'); return; }
     if (activeMoves.has(move)) return;
     activeMoves.add(move);
-    const token = ++runToken;
+    runToken++;
     updateMovementUI();
     say('Active: ' + [...activeMoves].join(' + ').toUpperCase() + '. Combined direction packet is experimental; test with wheels raised.', 'good');
-    driveLoop(token);
+    driveLoop();
   }
   function releaseMove(move, reason='Control released — STOP sent.') {
     if (!activeMoves.has(move)) return;
@@ -297,8 +314,7 @@ summary{cursor:pointer;font-size:10px;font-weight:800;letter-spacing:.13em;color
         writePacket(STOP_PACKET).then(() => say(reason, 'good')).catch(err => say('Stop attempted, but BLE write failed: ' + err.message, 'error'));
       } else say(reason);
     } else {
-      const token = ++runToken;
-      driveLoop(token);
+      driveLoop();
     }
   }
   async function connect() {
@@ -400,7 +416,6 @@ summary{cursor:pointer;font-size:10px;font-weight:800;letter-spacing:.13em;color
   }
   steeringWheel.addEventListener('pointerup', releaseSteeringWheel);
   steeringWheel.addEventListener('pointercancel', releaseSteeringWheel);
-  steeringWheel.addEventListener('lostpointercapture', releaseSteeringWheel);
   steeringWheel.addEventListener('contextmenu', event => event.preventDefault());
   $('stopBtn').addEventListener('click', () => stopNow('EMERGENCY STOP sent.'));
   document.querySelectorAll('[data-move]').forEach(button => {
@@ -413,7 +428,6 @@ summary{cursor:pointer;font-size:10px;font-weight:800;letter-spacing:.13em;color
     });
     button.addEventListener('pointerup', release);
     button.addEventListener('pointercancel', release);
-    button.addEventListener('lostpointercapture', release);
     button.addEventListener('contextmenu', event => event.preventDefault());
   });
  
