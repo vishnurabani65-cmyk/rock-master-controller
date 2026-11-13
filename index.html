@@ -416,6 +416,55 @@ summary{cursor:pointer;font-size:10px;font-weight:800;letter-spacing:.13em;color
     button.addEventListener('lostpointercapture', release);
     button.addEventListener('contextmenu', event => event.preventDefault());
   });
+ 
+  // Mac keyboard controls: W/A/S/D and arrow keys
+  let keyboardMove = null;
+
+  const keyboardDirections = {
+    w: 'forward',
+    arrowup: 'forward',
+    s: 'backward',
+    arrowdown: 'backward',
+    a: 'left',
+    arrowleft: 'left',
+    d: 'right',
+    arrowright: 'right'
+  };
+
+  window.addEventListener('keydown', event => {
+    if (event.target instanceof HTMLInputElement ||
+        event.target instanceof HTMLTextAreaElement ||
+        event.target.isContentEditable) return;
+
+    const key = event.key.toLowerCase();
+
+    if (key === ' ' || key === 'escape') {
+      event.preventDefault();
+      keyboardMove = null;
+      stopNow();
+      return;
+    }
+
+    const move = keyboardDirections[key];
+    if (!move) return;
+
+    event.preventDefault();
+    if (event.repeat || keyboardMove === move) return;
+
+    if (keyboardMove) stopNow();
+    keyboardMove = move;
+    beginMove(move, null);
+  });
+
+  window.addEventListener('keyup', event => {
+    const move = keyboardDirections[event.key.toLowerCase()];
+
+    if (move && keyboardMove === move) {
+      keyboardMove = null;
+      stopNow();
+    }
+  });
+
   window.addEventListener('blur', () => { if (activeMoves.size) stopNow('Page lost focus — STOP attempted.'); });
   document.addEventListener('visibilitychange', () => {
     if (document.hidden && activeMoves.size) stopNow('Page hidden — STOP attempted.');
